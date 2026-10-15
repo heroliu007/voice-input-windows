@@ -1,0 +1,72 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: 安裝套件
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: 單元測試
+        run: python -m unittest discover -s tests -v
+
+      - name: 打包 exe（PyInstaller）
+        shell: bash
+        run: |
+          pyinstaller --noconfirm --windowed --name VoiceInput \
+            --collect-all faster_whisper --collect-all ctranslate2 \
+            --collect-all onnxruntime --collect-all av \
+            --collect-all tokenizers --collect-all opencc \
+            --hidden-import pynput.keyboard._win32 --hidden-import pynput.mouse._win32 \
+            --hidden-import pystray._win32 \
+            app.py
+
+      - name: 自我檢測（在打包後的 exe 內載入所有元件並實際辨識一次）
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist\VoiceInput\VoiceInput.exe" -ArgumentList "--selftest" -Wait -PassThru
+          $report = Join-Path $env:LOCALAPPDATA "VoiceInput\selftest.txt"
+          if (Test-Path $report) { Get-Content $report } else { Write-Host "找不到自我檢測報告" }
+          if ($p.ExitCode -ne 0) { throw "selftest 失敗，exit code $($p.ExitCode)" }
+
+      - name: 安裝 Inno Setup 並產生安裝檔
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $v = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}".TrimStart("v") } else { "0.0.0" }
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$v" installer.iss
+          Get-ChildItem installer_out | Format-Table Name, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoiceInput-Setup
+          path: installer_out/VoiceInput-Setup.exe
+          compression-level: 0
+
+      - name: 發佈 Release（僅 tag）
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" installer_out/VoiceInput-Setup.exe `
+            --title "語音輸入 ${{ github.ref_name }}" `
+            --notes "下載 VoiceInput-Setup.exe 後雙擊安裝。第一次啟動會自動下載 AI 模型。"
