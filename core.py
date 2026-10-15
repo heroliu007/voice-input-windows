@@ -15,7 +15,7 @@ import zipfile
 from pathlib import Path
 
 APP_NAME = "VoiceInput"
-VERSION = "1.0.0"
+VERSION = "0.1.0"
 
 # ---- 資料夾 ----
 if os.name == "nt":
@@ -176,6 +176,8 @@ def to_traditional(text: str) -> str:
 def clean(text: str) -> str:
     text = to_traditional(text.strip())
     text = FILLERS.sub("", text)
+    text = re.sub(r"([，。！？；：])[，、]+", r"\1", text)  # 去掉贅詞後留下的重複標點
+    text = re.sub(r"，{2,}", "，", text).lstrip("，、 ")
     return re.sub(r"\s{2,}", " ", text).strip()
 
 

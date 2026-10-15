@@ -19,6 +19,14 @@ class TextTests(unittest.TestCase):
         self.assertIn("體育課", out)
         self.assertNotIn("嗯", out)
 
+    def test_clean_no_duplicate_punctuation_after_filler_removal(self):
+        out = core.clean("體育課，嗯，練習羽球，呃，然後準備球拍。")
+        self.assertNotIn("，，", out)
+        self.assertEqual(out, "體育課，練習羽球，然後準備球拍。")
+
+    def test_clean_leading_filler(self):
+        self.assertEqual(core.clean("嗯，今天要上課"), "今天要上課")
+
     def test_clean_keeps_normal_words(self):
         self.assertIn("啊哈", core.clean("他說啊哈就走了"))
 

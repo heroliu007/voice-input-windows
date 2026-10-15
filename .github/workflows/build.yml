@@ -67,6 +67,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.ref_name }}" installer_out/VoiceInput-Setup.exe `
+          $pre = @()
+          if ("${{ github.ref_name }}" -like "v0.*") { $pre = @("--prerelease") }
+          gh release create "${{ github.ref_name }}" installer_out/VoiceInput-Setup.exe @pre `
             --title "語音輸入 ${{ github.ref_name }}" `
-            --notes "下載 VoiceInput-Setup.exe 後雙擊安裝。第一次啟動會自動下載 AI 模型。"
+            --notes "下載 VoiceInput-Setup.exe 後雙擊安裝。第一次啟動會自動下載 AI 模型。v0.x 為測試版。"
