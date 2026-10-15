@@ -8,7 +8,7 @@
 
 ## 安裝
 
-1. 到 [Releases](../../releases/latest) 下載 `VoiceInput-Setup.exe`。
+1. 到 [Releases](../../releases) 下載 `VoiceInput-Setup.exe`。
 2. 雙擊安裝。
 3. 第一次啟動會顯示下載視窗，按「下載並開始」，等 AI 模型下載完成（只需一次）。
 
